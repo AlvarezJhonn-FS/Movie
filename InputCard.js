@@ -1,63 +1,136 @@
-import { View, Text, StyleSheet } from "react-native";
-import { TextInput } from "react-native-web";
+import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
+import { TextInput } from "react-native";
+import { useEffect, useState } from "react";
+
+const API_URL = "https://apicrud-bd3fa7e488da.herokuapp.com/movies";
 
 const InputCard = () => {
-  return (
-    <View style={styles.inputCard}>
-      <Text style={styles.title}>Movie Input</Text>
-      <p>Movie Name</p>
-      <TextInput style={styles.input} placeholder="Movie Title" value="Type a Movie..." />
-      <p>Genre</p>
-      <TextInput style={styles.input} placeholder="Movie Title" value="Type a Genre..." />
-      <p>Actor</p>
-      <TextInput style={styles.input} placeholder="Movie Title" value="Type an Actor..." />
-        <button style={styles.submit}>Submit</button>
-      <div style={styles.details}>
-        <h3>Details</h3>
-        <p>Title: </p>
-        <p>Genre: </p>
-        <p>Actor: </p>
+  const [title, setTitle] = useState("");
+  const [genre, setGenre] = useState("");
+  const [character, setCharacter] = useState("");
+  const [movies, setMovies] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
-      </div>
+  const fetchMovies = async () => {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    setMovies(data);
+  };
+
+  useEffect(() => {
+    fetchMovies();
+  }, []);
+
+  const handleSubmit = async () => {
+    const method = editingId ? "PUT" : "POST";
+    const url = editingId ? `${API_URL}/${editingId}` : API_URL;
+
+    await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, genre, character }),
+    });
+
+    setTitle("");
+    setGenre("");
+    setCharacter("");
+    setEditingId(null);
+    fetchMovies();
+  };
+
+  const handleDelete = async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    fetchMovies();
+  };
+
+  const handleEdit = (movie) => {
+    setEditingId(movie._id);
+    setTitle(movie.title);
+    setGenre(movie.genre);
+    setCharacter(movie.character);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>🎬 Movie Manager</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Movie Title"
+        value={title}
+        onChangeText={setTitle}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Genre"
+        value={genre}
+        onChangeText={setGenre}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Character"
+        value={character}
+        onChangeText={setCharacter}
+      />
+
+      <Pressable style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>
+          {editingId ? "Update Movie" : "Add Movie"}
+        </Text>
+      </Pressable>
+
+      <FlatList
+        data={movies}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.movieTitle}>{item.title}</Text>
+            <Text>{item.genre}</Text>
+            <Text>{item.character}</Text>
+
+            <View style={styles.row}>
+              <Pressable onPress={() => handleEdit(item)}>
+                <Text style={styles.link}>Edit</Text>
+              </Pressable>
+              <Pressable onPress={() => handleDelete(item._id)}>
+                <Text style={styles.link}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  inputCard: {
-    padding: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: "16px",
-    width: "60%",
-    height: "60vh",
-    color: "#D6DCE5",
-    alignItems: "center",
+  container: { padding: 20 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
   },
-  title: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  input : {
-    borderRadius:"12px",
-    width: "50%",
-    height: 50,
-    borderColor: "black",
-    textAlign: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderColor: "rgba(255, 255, 255, 0.15)",
-    color: "#AAB4C0"
-  },
-  submit: {
-    width: "8rem",
-    height: "2rem",
-    borderRadius: "12px",
+  button: {
     backgroundColor: "#005AE0",
-    border: "none",
-    color: "#FFFFFF"
-  }
-
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  buttonText: { color: "#fff", fontWeight: "bold" },
+  card: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  movieTitle: { fontWeight: "bold" },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  link: { color: "#005AE0", marginTop: 5 },
 });
 
 export default InputCard;
+
+
